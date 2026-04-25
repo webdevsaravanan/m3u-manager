@@ -41,7 +41,7 @@ export class GistService {
   buildM3U(movies: Movie[]): string {
     let content = '#EXTM3U\n\n';
     for (const m of movies) {
-      content += `#EXTINF:-1 tvg-name="${m.title}" tvg-logo="${m.logo}" group-title="Movies",${m.title}\n`;
+      content += `#EXTINF:-1 tvg-name="${m.title}" tvg-logo="${m.logo}" ${m.title}\n`;
       content += `${m.streamUrl}\n\n`;
     }
     return content.trim();

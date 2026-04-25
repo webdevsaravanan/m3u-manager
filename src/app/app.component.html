@@ -1,0 +1,166 @@
+<!-- TOAST -->
+<div class="toast" *ngIf="toast" [class.toast--success]="toast.type === 'success'" [class.toast--error]="toast.type === 'error'">
+  <span class="toast-icon">{{ toast.type === 'success' ? '✓' : '✕' }}</span>
+  {{ toast.message }}
+</div>
+
+<!-- MOVIE PREVIEW MODAL -->
+<div class="modal-overlay" *ngIf="previewMovie" (click)="closePreview()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <button class="modal-close" (click)="closePreview()">✕</button>
+    <div class="modal-poster">
+      <img [src]="previewMovie!.logo || 'assets/no-poster.svg'" [alt]="previewMovie!.title" (error)="onImageError($event)">
+    </div>
+    <div class="modal-info">
+      <h2>{{ previewMovie!.title }}</h2>
+      <div class="modal-badge">Movies</div>
+      <div class="modal-field">
+        <span class="field-label">Cover URL</span>
+        <span class="field-value">{{ previewMovie!.logo || '—' }}</span>
+      </div>
+      <div class="modal-field">
+        <span class="field-label">Stream URL</span>
+        <span class="field-value stream-url">{{ previewMovie!.streamUrl }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal-overlay" *ngIf="deleteConfirm" (click)="cancelDelete()">
+  <div class="modal modal--confirm" (click)="$event.stopPropagation()">
+    <div class="confirm-icon">⚠</div>
+    <h3>Delete Movie?</h3>
+    <p>Remove <strong>{{ deleteConfirm! }}</strong> from your playlist?</p>
+    <div class="confirm-actions">
+      <button class="btn btn--ghost" (click)="cancelDelete()">Cancel</button>
+      <button class="btn btn--danger" (click)="deleteMovie(deleteConfirm!)" [disabled]="saving">
+        {{ saving ? 'Deleting...' : 'Delete' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-brand">
+      <div class="brand-icon">▶</div>
+      <div>
+        <h1>M3U Manager</h1>
+        <span class="brand-sub">OTT Navigator Playlist</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn--ghost btn--sm" (click)="loadMovies()" [disabled]="loading">
+        <span [class.spin]="loading">↻</span> Refresh
+      </button>
+      <button class="btn btn--primary" (click)="showForm = !showForm">
+        {{ showForm ? '✕ Cancel' : '+ Add Movie' }}
+      </button>
+    </div>
+  </header>
+
+  <main class="main">
+
+    <!-- OTT URL BAR -->
+    <div class="url-bar">
+      <div class="url-bar-label">
+        <span class="dot dot--green"></span>
+        OTT Navigator URL
+      </div>
+      <div class="url-bar-value">{{ rawUrl }}</div>
+      <button class="btn btn--copy" (click)="copyRawUrl()">
+        {{ urlCopied ? '✓ Copied' : 'Copy URL' }}
+      </button>
+    </div>
+
+    <!-- ADD MOVIE FORM -->
+    <div class="form-panel" *ngIf="showForm">
+      <h2 class="form-title">Add New Movie</h2>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Movie Title *</label>
+          <input type="text" [(ngModel)]="newMovie.title" placeholder="e.g. Inception" class="input">
+        </div>
+        <div class="form-group">
+          <label>Cover Image URL</label>
+          <input type="url" [(ngModel)]="newMovie.logo" placeholder="https://..." class="input">
+        </div>
+        <div class="form-group form-group--full">
+          <label>Stream URL *</label>
+          <input type="url" [(ngModel)]="newMovie.streamUrl" placeholder="https://..." class="input">
+        </div>
+      </div>
+
+      <!-- PREVIEW ROW -->
+      <div class="form-preview" *ngIf="newMovie.title || newMovie.logo">
+        <img class="preview-thumb" [src]="newMovie.logo || 'assets/no-poster.svg'" alt="preview" (error)="onImageError($event)">
+        <div>
+          <div class="preview-title">{{ newMovie.title || 'Untitled' }}</div>
+          <div class="preview-badge">Movies</div>
+        </div>
+      </div>
+
+      <div class="form-footer">
+        <button class="btn btn--primary btn--lg" (click)="addMovie()" [disabled]="saving">
+          {{ saving ? 'Saving...' : '+ Add to Playlist' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- STATS BAR -->
+    <div class="stats-bar">
+      <div class="stat">
+        <span class="stat-num">{{ movies.length }}</span>
+        <span class="stat-label">Movies</span>
+      </div>
+      <div class="stat-actions">
+        <button class="btn btn--ghost btn--sm" (click)="copyM3U()" [disabled]="movies.length === 0">
+          {{ m3uCopied ? '✓ Copied' : '⎘ Copy M3U' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- LOADING -->
+    <div class="loading-state" *ngIf="loading">
+      <div class="loader"></div>
+      <span>Loading playlist...</span>
+    </div>
+
+    <!-- EMPTY STATE -->
+    <div class="empty-state" *ngIf="!loading && movies.length === 0">
+      <div class="empty-icon">🎬</div>
+      <p>No movies yet. Add your first movie!</p>
+    </div>
+
+    <!-- MOVIE GRID -->
+    <div class="movie-grid" *ngIf="!loading && movies.length > 0">
+      <div class="movie-card" *ngFor="let movie of movies; let i = index" [style.animation-delay]="i * 60 + 'ms'">
+        <div class="card-poster" (click)="openPreview(movie)">
+          <img [src]="movie.logo || 'assets/no-poster.svg'" [alt]="movie.title" (error)="onImageError($event)">
+          <div class="card-overlay">
+            <span class="card-play">▶</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-title" [title]="movie.title">{{ movie.title }}</div>
+          <div class="card-meta">
+            <span class="card-badge">Movies</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn--icon" title="Preview" (click)="openPreview(movie)">👁</button>
+            <button class="btn btn--icon btn--danger-icon" title="Delete" (click)="confirmDelete(movie.title)">🗑</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="footer">
+    <span>M3U Manager · GitHub Gist Storage · OTT Navigator Ready</span>
+  </footer>
+</div>
